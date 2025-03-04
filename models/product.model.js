@@ -112,6 +112,10 @@ const productSchema = mongoose.Schema({
     type: Boolean,
     required: true,
   },
+  image: {
+    type: String,
+    required: true,
+  },
 });
 
 module.exports = mongoose.model("Product", productSchema);
