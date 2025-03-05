@@ -4,7 +4,7 @@ const Product = require("../models/product.model.js");
 const AppError = require("../utils/appErrors.js");
 // const bcrypt = require("bcryptjs");
 // const generateJWT = require("../utils/generateJWT.js");
-// const { validationResult } = require("express-validator");
+const { validationResult } = require("express-validator");
 
 //#rejon cloud
 const cloudinary = require("cloudinary").v2;
@@ -18,46 +18,6 @@ cloudinary.config({
   api_secret: API_SECRET,
 });
 
-//#end rejon
-
-const getAllProduct = aysncWrapper(async (req, res, next) => {
-  const product = await Product.find();
-  console.log(product);
-  res.json({ status: "sucsess", data: product });
-});
-
-const addProduct = aysncWrapper(async (req, res, next) => {
-  console.log("body", req.body);
-  const oldProduct = await Product.findOne({
-    productCode: req.body.productCode,
-  });
-  console.log("oldProduct", oldProduct);
-  if (oldProduct) {
-    const error = AppError.createError(
-      "Product already exists",
-      400,
-      status.BAD_REQUEST
-    );
-    return next(error);
-  }
-  let image = await uploadeImage("media/images/product/" + req.body.image);
-  console.log(+req.body.image);
-  if (!image) {
-    const error = AppError.createError(
-      "this Image Is Not Found In Project",
-      400,
-      status.BAD_REQUEST
-    );
-    return next(error);
-  }
-  req.body.image = image;
-
-  const product = new Product({ ...req.body });
-  await product.save();
-  res.status(201).json({ status: status.CREATED, data: { product } });
-});
-module.exports = { getAllProduct, addProduct };
-
 async function uploadeImage(img) {
   try {
     const result = await cloudinary.uploader.upload(img);
@@ -68,6 +28,204 @@ async function uploadeImage(img) {
     return "";
   }
 }
+
+//#end rejon
+
+const getAllProduct = aysncWrapper(async (req, res, next) => {
+  const products = await Product.find();
+  console.log(products);
+  res.status(200).json({ status: status.SUCCESS, data: products });
+});
+
+const getProductByCode = aysncWrapper(async (req, res, next) => {
+  const code = req.params.code;
+  const product = await Product.findOne({ productCode: code });
+  console.log(product);
+  if (!product) {
+    const error = AppError.createError(
+      "Product not found",
+      404,
+      status.NOT_FOUND
+    );
+    return next(error);
+  }
+  res.status(200).json({ status: status.SUCCESS, data: product });
+});
+
+const addProduct = aysncWrapper(async (req, res, next) => {
+  console.log("body", req.body);
+  const oldProduct = await Product.findOne({
+    productCode: req.body.productCode,
+  });
+
+  const requestFields = Object.keys(req.body);
+
+  const allowedFields = [
+    "_id",
+    "title",
+    "description",
+    "price",
+    "rating",
+    "quantity",
+    "productCode",
+    "shippingTax",
+    "availableColors",
+    "availableSizes",
+    "categories",
+    "tags",
+    "brand",
+    "sale",
+    "hot",
+    "image",
+  ];
+
+  const invalidFields = requestFields.filter(
+    (field) => !allowedFields.includes(field)
+  );
+
+  if (requestFields.length === 0) {
+    const error = AppError.createError(
+      "Please provide at least one valid field to update",
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+
+  if (invalidFields.length > 0) {
+    const error = AppError.createError(
+      `Invalid fields:( ${invalidFields.join(
+        ", "
+      )} ) Allowed fields: (${allowedFields.join(", ")})`,
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+
+  console.log("oldProduct", oldProduct);
+  if (oldProduct) {
+    const error = AppError.createError(
+      "Product already exists",
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+  const isAUrlImage =
+    /^https:\/\/res\.cloudinary\.com\/[\w-]+\/image\/upload\/v\d+\/[\w-]+\.\w+$/;
+
+  if (!isAUrlImage.test(req.body.image)) {
+    let image = await uploadeImage("media/images/product/" + req.body.image);
+    console.log(+req.body.image);
+    if (!image) {
+      const error = AppError.createError(
+        "this Image Is Not Found In Project",
+        400,
+        status.BAD_REQUEST
+      );
+      return next(error);
+    }
+    req.body.image = image;
+  }
+  // hena fe ta3del 3ashan el sora httbe3t men el front mesh 7akon 3arf ma2an7a 7af3ha cloud men elfront wab3t el link
+
+  const product = new Product({ ...req.body });
+  await product.save();
+  res.status(201).json({ status: status.CREATED, data: { product } });
+});
+
+const updateProduct = aysncWrapper(async (req, res, next) => {
+  const code = req.params.code;
+  const body = req.body;
+
+  const errors = validationResult(req);
+
+  const requestFields = Object.keys(body);
+
+  const allowedFields = [
+    "_id",
+    "title",
+    "description",
+    "price",
+    "rating",
+    "quantity",
+    "productCode",
+    "shippingTax",
+    "availableColors",
+    "availableSizes",
+    "categories",
+    "tags",
+    "brand",
+    "sale",
+    "hot",
+    "image",
+  ];
+
+  const invalidFields = requestFields.filter(
+    (field) => !allowedFields.includes(field)
+  );
+
+  if (!errors.isEmpty()) {
+    const error = AppError.createError(errors.array(), 400, status.BAD_REQUEST);
+    return next(error);
+  }
+
+  if (requestFields.length === 0) {
+    const error = AppError.createError(
+      "Please provide at least one valid field to update",
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+
+  if (invalidFields.length > 0) {
+    const error = AppError.createError(
+      `Invalid fields:( ${invalidFields.join(
+        ", "
+      )} ) Allowed fields: (${allowedFields.join(", ")})`,
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+  const newProduct = await Product.findOneAndUpdate(
+    { productCode: code },
+    { $set: body },
+    { new: true } // Return updated document
+  );
+  // hena fe ta3del 3ashan el sora 3nd el update
+
+  if (!newProduct) {
+    const error = AppError.createError("User not found", 404, status.NOT_FOUND);
+    return next(error);
+  }
+
+  res.json({ status: status.SUCCESS, data: { newProduct } });
+});
+
+const deleted = aysncWrapper(async (req, res, next) => {
+  const code = req.params.code;
+  const product = await Product.findOneAndDelete({ productCode: code });
+  console.log(product);
+  if (!product) {
+    const error = AppError.createError(
+      "Product not found",
+      404,
+      status.NOT_FOUND
+    );
+    return next(error);
+  }
+  res.status(200).json({ status: status.DELETED, data: null });
+});
+module.exports = {
+  getAllProduct,
+  getProductByCode,
+  addProduct,
+  updateProduct,
+  deleted,
+};
 
 /*
  // just test   

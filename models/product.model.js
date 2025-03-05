@@ -82,11 +82,6 @@ const productSchema = mongoose.Schema({
       message: "Size must be one of: S, M, L, XL, XXL",
     },
   },
-  imageSrc: {
-    type: String,
-    required: true,
-    trim: true,
-  },
   categories: {
     type: String,
     required: true,

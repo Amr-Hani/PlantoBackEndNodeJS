@@ -16,11 +16,7 @@ const usersRouter = require("./routes/users.routes.js");
 const productsRouter = require("./routes/product.routes.js");
 app.use(express.json());
 app.use("/users", usersRouter);
-app.use("/products", productsRouter);
-// app.get("/products", (req, res, next) => {
-//   console.log("amr");
-//   res.send("amr");
-// });
+app.use("/", productsRouter);
 
 app.all("*", (req, res) => {
   res.status(404).send("404 Not Found");
