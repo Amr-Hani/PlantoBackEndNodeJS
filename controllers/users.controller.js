@@ -30,11 +30,11 @@ const register = aysncWrapper(async (req, res, next) => {
     email,
     password: hashedPassword,
   });
-  const token = await generateJWT({ user });
+  const token = await generateJWT(user);
 
   user.token = token;
   await user.save();
-  res.status(201).json({ status: status.CREATED, data: { user } });
+  res.status(201).json({ status: status.CREATED, data: user });
 });
 
 const login = aysncWrapper(async (req, res, next) => {
@@ -61,7 +61,7 @@ const login = aysncWrapper(async (req, res, next) => {
     );
     return next(error);
   }
-  const token = await generateJWT({ user });
+  const token = await generateJWT(user);
   res.json({ status: status.SUCCESS, data: { token } });
 });
 
