@@ -5,7 +5,8 @@ module.exports = async (payload) => {
   const token = await jwt.sign(
     { email: payload.email, id: payload._id },
     process.env.JWT_SECRET_KEY,
-    { expiresIn: "1h" }
+
+    { expiresIn: "1d" }
   );
   return token;
 };
