@@ -15,7 +15,7 @@ const updateUserMiddleware = require("../middlewares/updateUserMiddleware.js");
  *
  */
 
-router.route("/").get(/**verifyToken, */ userController.getAllUsers);
+router.route("/").get(verifyToken, userController.getAllUsers);
 
 router.route("/register").post(userController.register);
 
