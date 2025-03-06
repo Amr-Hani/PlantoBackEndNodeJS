@@ -38,8 +38,8 @@ const getAllProduct = aysncWrapper(async (req, res, next) => {
 });
 
 const getProductByCode = aysncWrapper(async (req, res, next) => {
-  const code = req.params.code;
-  const product = await Product.findOne({ productCode: code });
+  const id = req.params.id;
+  const product = await Product.findOne({ _id: id });
   console.log(product);
   if (!product) {
     const error = AppError.createError(
@@ -136,7 +136,7 @@ const addProduct = aysncWrapper(async (req, res, next) => {
 });
 
 const updateProduct = aysncWrapper(async (req, res, next) => {
-  const code = req.params.code;
+  const id = req.params.id;
   const body = req.body;
 
   const errors = validationResult(req);
@@ -191,7 +191,7 @@ const updateProduct = aysncWrapper(async (req, res, next) => {
     return next(error);
   }
   const newProduct = await Product.findOneAndUpdate(
-    { productCode: code },
+    { _id: id },
     { $set: body },
     { new: true } // Return updated document
   );
@@ -206,8 +206,8 @@ const updateProduct = aysncWrapper(async (req, res, next) => {
 });
 
 const deleted = aysncWrapper(async (req, res, next) => {
-  const code = req.params.code;
-  const product = await Product.findOneAndDelete({ productCode: code });
+  const id = req.params.id;
+  const product = await Product.findOneAndDelete({ _id: id });
   console.log(product);
   if (!product) {
     const error = AppError.createError(

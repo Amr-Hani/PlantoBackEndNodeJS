@@ -48,7 +48,9 @@ const addFavoriteProduct = aysncWrapper(async (req, res, next) => {
     );
     return next(error);
   }
-  let product = await Product.findOne({ product_id });
+  let product = await Product.findOne({ _id: product_id });
+  console.log(product);
+
   if (!product) {
     const error = AppError.createError(
       "no prodouct with this id",
@@ -67,7 +69,7 @@ const addFavoriteProduct = aysncWrapper(async (req, res, next) => {
     });
   } else {
     if (!userFavorites.favoriteProducts.includes(product_id)) {
-      userFavorites.favoriteProducts.push(productId);
+      userFavorites.favoriteProducts.push(product_id);
     } else {
       return res.status(400).json({ message: "product already in favorites" });
     }
