@@ -7,6 +7,7 @@ const UPDATED = "updated";
 const DELETED = "deleted";
 const BAD_REQUEST = "bad request";
 const UNAUTHORIZED = "unauthorized";
+const EMPTY = "empty";
 
 module.exports = {
   BAD_REQUEST,

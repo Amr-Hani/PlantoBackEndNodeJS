@@ -15,10 +15,12 @@ mongoose.connect(url).then(() => {
 const usersRouter = require("./routes/users.routes.js");
 const productsRouter = require("./routes/product.routes.js");
 const userFAvoritesRouter = require("./routes/userFavorite.routes.js");
+const cartRouter = require("./routes/cart.routes.js");
 app.use(express.json());
 app.use("/users", usersRouter);
 app.use("/", productsRouter);
 app.use("/favorite", userFAvoritesRouter);
+app.use("/cart", cartRouter);
 
 app.all("*", (req, res) => {
   res.status(404).send("404 Not Found");

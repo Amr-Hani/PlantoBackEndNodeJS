@@ -43,8 +43,8 @@ const addFavoriteProduct = aysncWrapper(async (req, res, next) => {
   if (!userId || !product_id) {
     const error = AppError.createError(
       "User ID and Product ID are required",
-      400,
-      status.BAD_REQUEST
+      401,
+      status.UNAUTHORIZED
     );
     return next(error);
   }
@@ -93,10 +93,10 @@ const getAllFavoriteProducts = aysncWrapper(async (req, res, next) => {
     "favoriteProducts"
   );
 
-  if (!userFavorites) {
+  if (!userFavorites || userFavorites.favoriteProducts.length == 0) {
     return res
       .status(200)
-      .json({ message: "No favorite products found", data: [] });
+      .json({ message: "No favorite products found or Empty", data: [] });
   }
 
   res.status(200).json({
