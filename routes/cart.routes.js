@@ -7,8 +7,9 @@ const {
   updateCart,
 } = require("../controllers/cart.controller");
 
-router.route("/").post(addItemToCart);
+const cartMiddleware = require("../middlewares/cartMiddleware");
+router.route("/").post(cartMiddleware(), addItemToCart);
 router.route("/").get(getCartById);
-router.route("/").delete(deleteItemFromCart);
+router.route("/").delete(cartMiddleware(), deleteItemFromCart);
 router.route("/").patch(updateCart);
 module.exports = router;
