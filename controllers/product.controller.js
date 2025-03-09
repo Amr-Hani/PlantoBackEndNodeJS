@@ -1,4 +1,4 @@
-const aysncWrapper = require("../middlewares/errorHandler.js");
+const asyncWrapper = require("../middlewares/errorHandler.js");
 const status = require("../utils/httpStatusText.js");
 const Product = require("../models/product.model.js");
 const AppError = require("../utils/appErrors.js");
@@ -8,9 +8,9 @@ const { validationResult } = require("express-validator");
 
 //#rejon cloud
 const cloudinary = require("cloudinary").v2;
-const CLOUD_NAME = "djy2bvolh";
-const API_KEY = "369322986393783";
-const API_SECRET = "qesxm8hVuRpK2ClX3Y0oN3HpMPA";
+const CLOUD_NAME = process.env.CLOUD_NAME;
+const API_KEY = process.env.API_KEY;
+const API_SECRET = process.env.API_SECRET;
 
 cloudinary.config({
   cloud_name: CLOUD_NAME,
@@ -31,13 +31,15 @@ async function uploadeImage(img) {
 
 //#end rejon
 
-const getAllProduct = aysncWrapper(async (req, res, next) => {
-  const products = await Product.find();
+const getAllProduct = asyncWrapper(async (req, res, next) => {
+  const sortOrder = req.query.order === "desc" ? -1 : 1;
+  const sortField = req.query.sortBy || "price";
+  const products = await Product.find().sort({ [sortField]: sortOrder });
   console.log(products);
   res.status(200).json({ status: status.SUCCESS, data: products });
 });
 
-const getProductByCode = aysncWrapper(async (req, res, next) => {
+const getProductByCode = asyncWrapper(async (req, res, next) => {
   const id = req.params.id;
   const product = await Product.findOne({ _id: id });
   console.log(product);
@@ -52,7 +54,7 @@ const getProductByCode = aysncWrapper(async (req, res, next) => {
   res.status(200).json({ status: status.SUCCESS, data: product });
 });
 
-const addProduct = aysncWrapper(async (req, res, next) => {
+const addProduct = asyncWrapper(async (req, res, next) => {
   console.log("body", req.body);
   const oldProduct = await Product.findOne({
     productCode: req.body.productCode,
@@ -135,7 +137,7 @@ const addProduct = aysncWrapper(async (req, res, next) => {
   res.status(201).json({ status: status.CREATED, data: { product } });
 });
 
-const updateProduct = aysncWrapper(async (req, res, next) => {
+const updateProduct = asyncWrapper(async (req, res, next) => {
   const id = req.params.id;
   const body = req.body;
 
@@ -205,7 +207,7 @@ const updateProduct = aysncWrapper(async (req, res, next) => {
   res.json({ status: status.SUCCESS, data: { newProduct } });
 });
 
-const deleted = aysncWrapper(async (req, res, next) => {
+const deleted = asyncWrapper(async (req, res, next) => {
   const id = req.params.id;
   const product = await Product.findOneAndDelete({ _id: id });
   console.log(product);
@@ -219,13 +221,164 @@ const deleted = aysncWrapper(async (req, res, next) => {
   }
   res.status(200).json({ status: status.DELETED, data: null });
 });
+
+const getProductsByPram = asyncWrapper(async (req, res, next) => {
+  const filterBy = req.params.dynamicParam;
+  const param = req.params.paramName;
+  const sortOrder = req.query.order === "desc" ? -1 : 1; // `asc` = 1, `desc` = -1
+  const sortField = req.query.sortBy || "price";
+  const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice) : null;
+  const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice) : null;
+  const allowedFields = [
+    "title",
+    "description",
+    "price",
+    "rating",
+    "quantity",
+    "availableColors",
+    "availableSizes",
+    "categories",
+    "tags",
+    "brand",
+    "sale",
+    "hot",
+  ];
+  if (!allowedFields.includes(filterBy)) {
+    const error = AppError.createError(
+      `Invalid fields:( ${filterBy} ) Allowed fields: (${allowedFields.join(
+        ", "
+      )})`,
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+
+  let filter = {
+    [filterBy]: { $regex: param, $options: "i" },
+  };
+
+  if (minPrice !== null || maxPrice !== null) {
+    filter.price = {};
+    if (minPrice !== null) filter.price.$gte = minPrice;
+    if (maxPrice !== null) filter.price.$lte = maxPrice;
+  }
+
+  console.log("Filter:", filter);
+
+  const products = await Product.find(filter).sort({ [sortField]: sortOrder });
+  console.log(products.length);
+  if (!products.length) {
+    const error = AppError.createError(
+      `Products in this ${filterBy} not found`,
+      404,
+      status.NOT_FOUND
+    );
+    return next(error);
+  }
+  res.json({ stetus: status.SUCCESS, data: products });
+});
+
+// http://localhost:3000/products/tag/gaming?minPrice=100&maxPrice=500&order=asc
+
 module.exports = {
   getAllProduct,
   getProductByCode,
   addProduct,
   updateProduct,
   deleted,
+  getProductsByPram,
+  // getProductsByCategory,
+  // getProductsByTag,
 };
+
+// const getProductsByCategory = asyncWrapper(async (req, res, next) => {
+//   const categorieName = req.params.catName;
+//   console.log(categorieName);
+//   const sortOrder = req.query.order === "desc" ? -1 : 1; // `asc` = 1, `desc` = -1
+
+//   const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice) : null;
+//   const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice) : null;
+
+//   console.log(sortOrder);
+//   console.log(minPrice);
+//   console.log(maxPrice);
+
+//   let filter = {
+//     categories: { $regex: categorieName, $options: "i" },
+//   };
+
+//   if (minPrice !== null || maxPrice !== null) {
+//     filter.price = {};
+//     if (minPrice !== null) filter.price.$gte = minPrice;
+//     if (maxPrice !== null) filter.price.$lte = maxPrice;
+//   }
+
+//   console.log("Filter:", filter);
+
+//   const products = await Product.find(filter).sort({ categories: sortOrder });
+//   console.log(products.length);
+//   if (!products.length) {
+//     const error = AppError.createError(
+//       "Products in this categorie not found",
+//       404,
+//       status.NOT_FOUND
+//     );
+//     return next(error);
+//   }
+//   res.json({ stetus: status.SUCCESS, data: products });
+// });
+
+// const getProductsByTag = asyncWrapper(async (req, res, next) => {
+//   const categorieName = req.params.tagName;
+//   const sortOrder = req.query.order === "desc" ? -1 : 1;
+
+//   const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice) : null;
+//   const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice) : null;
+
+//   console.log(sortOrder);
+//   console.log(minPrice);
+//   console.log(maxPrice);
+
+//   const products = await Product.find({
+//     tags: { $regex: categorieName, $options: "i" },
+//     price: {
+//       ...(minPrice !== null ? { $gte: minPrice } : {}),
+//       ...(maxPrice !== null ? { $lte: maxPrice } : {}),
+//     },
+//   }).sort({ tags: sortOrder });
+
+//   if (!products.length) {
+//     const error = AppError.createError(
+//       "Products in this Tag not found",
+//       404,
+//       status.NOT_FOUND
+//     );
+//     return next(error);
+//   }
+//   res.json({ status: status.SUCCESS, data: products });
+// });
+
+// // http://localhost:3000/products/tag/gaming?minPrice=100&maxPrice=500&order=asc
+
+// const getProductsByTag = asyncWrapper(async (req, res, next) => {
+//   const categorieName = req.params.tagName;
+//   const sortOrder = req.query.order === "desc" ? -1 : 1; // `asc` = 1, `desc` = -1
+//   console.log(sortOrder);
+
+//   const products = await Product.find({
+//     tags: { $regex: categorieName, $options: "i" },
+//   }).sort({ tags: sortOrder });
+//   if (!products.length) {
+//     const error = AppError.createError(
+//       "Products in this Tag not found",
+//       404,
+//       status.NOT_FOUND
+//     );
+//     return next(error);
+//   }
+//   res.json({ stetus: status.SUCCESS, data: products });
+// });
 
 /*
  // just test   
