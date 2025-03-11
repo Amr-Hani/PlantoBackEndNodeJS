@@ -65,6 +65,7 @@ const productSchema = mongoose.Schema({
   availableColors: {
     type: [String],
     required: true,
+
     enum: ["Black", "White", "Blue", "Red"],
     validate: {
       validator: (arr) =>
@@ -113,4 +114,129 @@ const productSchema = mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("Product", productSchema);
+//module.exports = mongoose.model("Product", productSchema);
+
+///-------------
+const productSchema2 = mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 100,
+  },
+  description: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 10,
+    maxlength: 500,
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  rating: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 5,
+  },
+  productCode: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+  },
+  shippingTax: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  availableColorsAndSizes: [
+    {
+      color: {
+        type: String,
+        required: true,
+        enum: ["Black", "White", "Blue", "Red"],
+      },
+      sizes: [
+        {
+          size: {
+            type: String,
+            required: true,
+            enum: ["S", "M", "L", "XL", "XXL"],
+          },
+          quantity: {
+            type: Number,
+            required: true,
+            min: 0,
+          },
+        },
+      ],
+    },
+  ],
+  categories: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  tags: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  brand: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  sale: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 1, // 0 to 1 representing percentage (e.g., 0.2 means 20%)
+  },
+  hot: {
+    type: Boolean,
+    required: true,
+  },
+  image: {
+    type: String,
+    required: true,
+  },
+});
+
+module.exports = mongoose.model("Product", productSchema2);
+
+// {
+//   "title": "Stylish T-Shirt",
+//   "description": "A high-quality stylish T-shirt",
+//   "price": 29.99,
+//   "rating": 4.5,
+//   "productCode": "TSHIRT123",
+//   "shippingTax": 5.99,
+//   "availableVariants": [
+//     {
+//       "color": "Black",
+//       "sizes": [
+//         { "size": "M", "quantity": 10 },
+//         { "size": "L", "quantity": 5 }
+//       ]
+//     },
+//     {
+//       "color": "White",
+//       "sizes": [
+//         { "size": "S", "quantity": 8 },
+//         { "size": "XL", "quantity": 12 }
+//       ]
+//     }
+//   ],
+//   "categories": "Clothing",
+//   "tags": "tshirt, casual, fashion",
+//   "brand": "BrandX",
+//   "sale": 0.2,
+//   "hot": true,
+//   "image": "image-url.jpg"
+// }

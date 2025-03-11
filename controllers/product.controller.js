@@ -60,51 +60,6 @@ const addProduct = asyncWrapper(async (req, res, next) => {
     productCode: req.body.productCode,
   });
 
-  const requestFields = Object.keys(req.body);
-
-  const allowedFields = [
-    "_id",
-    "title",
-    "description",
-    "price",
-    "rating",
-    "quantity",
-    "productCode",
-    "shippingTax",
-    "availableColors",
-    "availableSizes",
-    "categories",
-    "tags",
-    "brand",
-    "sale",
-    "hot",
-    "image",
-  ];
-
-  const invalidFields = requestFields.filter(
-    (field) => !allowedFields.includes(field)
-  );
-
-  if (requestFields.length === 0) {
-    const error = AppError.createError(
-      "Please provide at least one valid field to update",
-      400,
-      status.BAD_REQUEST
-    );
-    return next(error);
-  }
-
-  if (invalidFields.length > 0) {
-    const error = AppError.createError(
-      `Invalid fields:( ${invalidFields.join(
-        ", "
-      )} ) Allowed fields: (${allowedFields.join(", ")})`,
-      400,
-      status.BAD_REQUEST
-    );
-    return next(error);
-  }
-
   console.log("oldProduct", oldProduct);
   if (oldProduct) {
     const error = AppError.createError(
