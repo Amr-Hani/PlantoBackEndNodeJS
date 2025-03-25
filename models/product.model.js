@@ -113,4 +113,120 @@ const productSchema = mongoose.Schema({
   },
 });
 
-module.exports = mongoose.model("Product", productSchema);
+// module.exports = mongoose.model("Product", productSchema);
+
+const productSchema2 = mongoose.Schema({
+  title: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 3,
+    maxlength: 100,
+  },
+  description: {
+    type: String,
+    required: true,
+    trim: true,
+    minlength: 10,
+    maxlength: 500,
+  },
+  price: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  rating: {
+    type: Number,
+    required: true,
+    min: 1,
+    max: 5,
+  },
+  productCode: {
+    type: String,
+    required: true,
+    unique: true,
+    trim: true,
+  },
+  shippingTax: {
+    type: Number,
+    required: true,
+    min: 0,
+  },
+  // availableColorsAndSizes: [
+  //   {
+  //     color: {
+  //       type: String,
+  //       required: true,
+  //       enum: ["Black", "White", "Blue", "Red"],
+  //     },
+  //     sizes: [
+  //       {
+  //         size: {
+  //           type: String,
+  //           required: true,
+  //           enum: ["S", "M", "L", "XL", "XXL"],
+  //         },
+  //         quantity: {
+  //           type: Number,
+  //           required: true,
+  //           min: 0,
+  //         },
+  //       },
+  //     ],
+  //   },
+  // ],
+  stock: [
+    {
+      color: {
+        type: String,
+        required: true,
+        enum: ["Black", "White", "Blue", "Red"],
+      },
+      sizes: [
+        {
+          size: {
+            type: String,
+            required: true,
+            enum: ["S", "M", "L", "XL", "XXL"],
+          },
+          quantity: {
+            type: Number,
+            required: true,
+            min: 0,
+          },
+        },
+      ],
+    },
+  ],
+  categories: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  tags: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  brand: {
+    type: String,
+    required: true,
+    trim: true,
+  },
+  sale: {
+    type: Number,
+    required: true,
+    min: 0,
+    max: 1, // 0 to 1 representing percentage (e.g., 0.2 means 20%)
+  },
+  hot: {
+    type: Boolean,
+    required: true,
+  },
+  image: {
+    type: String,
+    required: true,
+  },
+});
+
+module.exports = mongoose.model("Product", productSchema2);
