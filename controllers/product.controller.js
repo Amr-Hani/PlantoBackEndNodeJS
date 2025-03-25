@@ -5,7 +5,6 @@ const AppError = require("../utils/appErrors.js");
 // const bcrypt = require("bcryptjs");
 // const generateJWT = require("../utils/generateJWT.js");
 const { validationResult } = require("express-validator");
-
 //#rejon cloud
 const cloudinary = require("cloudinary").v2;
 const CLOUD_NAME = process.env.CLOUD_NAME;
@@ -56,23 +55,38 @@ const getProductByCode = asyncWrapper(async (req, res, next) => {
 
 const addProduct = asyncWrapper(async (req, res, next) => {
   console.log("body", req.body);
-  const oldProduct = await Product.findOne({
-    productCode: req.body.productCode,
-  });
 
   const requestFields = Object.keys(req.body);
+  let requestFieldsInStock;
+  let requestFieldsInStockInSize;
+
+  // const allowedFields = [
+  //   "_id",
+  //   "title",
+  //   "description",
+  //   "price",
+  //   "rating",
+  //   "quantity",
+  //   "productCode",
+  //   "shippingTax",
+  //   "availableColors",
+  //   "availableSizes",
+  //   "categories",
+  //   "tags",
+  //   "brand",
+  //   "sale",
+  //   "hot",
+  //   "image",
+  // ];
 
   const allowedFields = [
-    "_id",
     "title",
     "description",
     "price",
     "rating",
-    "quantity",
     "productCode",
     "shippingTax",
-    "availableColors",
-    "availableSizes",
+    "stock",
     "categories",
     "tags",
     "brand",
@@ -80,19 +94,9 @@ const addProduct = asyncWrapper(async (req, res, next) => {
     "hot",
     "image",
   ];
-
   const invalidFields = requestFields.filter(
     (field) => !allowedFields.includes(field)
   );
-
-  if (requestFields.length === 0) {
-    const error = AppError.createError(
-      "Please provide at least one valid field to update",
-      400,
-      status.BAD_REQUEST
-    );
-    return next(error);
-  }
 
   if (invalidFields.length > 0) {
     const error = AppError.createError(
@@ -105,7 +109,88 @@ const addProduct = asyncWrapper(async (req, res, next) => {
     return next(error);
   }
 
-  console.log("oldProduct", oldProduct);
+  // requestFieldsInStock = Object.keys(req.body.stock[0]);
+  // console.log(requestFieldsInStock);
+  // const invalidFieldsInStock = requestFieldsInStock.filter(
+  //   (field) => !allowedFieldsInStock.includes(field)
+  // );
+
+  if (!Array.isArray(req.body.stock)) {
+    const error = AppError.createError(
+      "Stock must be an array",
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+  if (req.body.stock.length === 0) {
+    const error = AppError.createError(
+      "Please provide at least one valid field (color, sizes)",
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+
+  const allowedFieldsInStock = ["color", "sizes"];
+  const invalidFieldsInStock = req.body.stock.flatMap((item) =>
+    Object.keys(item).filter((field) => !allowedFieldsInStock.includes(field))
+  );
+
+  if (invalidFieldsInStock.length > 0) {
+    const error = AppError.createError(
+      `Invalid fields:( ${invalidFieldsInStock.join(
+        ", "
+      )} ) Allowed fields: (${allowedFieldsInStock.join(", ")})`,
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+
+  const allowedFieldsInSizes = ["size", "quantity"];
+
+  for (const stockItem of req.body.stock) {
+    if (!Array.isArray(stockItem.sizes)) {
+      const error = AppError.createError(
+        "Sizes must be an array",
+        400,
+        status.BAD_REQUEST
+      );
+      return next(error);
+    }
+
+    if (stockItem.sizes.length === 0) {
+      const error = AppError.createError(
+        "Please provide at least one valid field (size, quantity)",
+        400,
+        status.BAD_REQUEST
+      );
+      return next(error);
+    }
+
+    const invalidFieldsInSizes = stockItem.sizes.flatMap((sizeItem) =>
+      Object.keys(sizeItem).filter(
+        (field) => !allowedFieldsInSizes.includes(field)
+      )
+    );
+
+    if (invalidFieldsInSizes.length > 0) {
+      const error = AppError.createError(
+        `Invalid fields in sizes: ( ${[...new Set(invalidFieldsInSizes)].join(
+          ", "
+        )} ) Allowed fields: (${allowedFieldsInSizes.join(", ")})`,
+        400,
+        status.BAD_REQUEST
+      );
+      return next(error);
+    }
+  }
+
+  const oldProduct = await Product.findOne({
+    productCode: req.body.productCode,
+  });
+
   if (oldProduct) {
     const error = AppError.createError(
       "Product already exists",
