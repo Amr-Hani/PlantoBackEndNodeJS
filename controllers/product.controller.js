@@ -231,16 +231,13 @@ const updateProduct = asyncWrapper(async (req, res, next) => {
   const requestFields = Object.keys(body);
 
   const allowedFields = [
-    "_id",
     "title",
     "description",
     "price",
     "rating",
-    "quantity",
     "productCode",
     "shippingTax",
-    "availableColors",
-    "availableSizes",
+    "stock",
     "categories",
     "tags",
     "brand",
