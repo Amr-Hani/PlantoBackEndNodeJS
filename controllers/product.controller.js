@@ -31,9 +31,16 @@ async function uploadeImage(img) {
 //#end rejon
 
 const getAllProduct = asyncWrapper(async (req, res, next) => {
+  const limit = parseInt(req.query.limit) || 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * limit;
+
   const sortOrder = req.query.order === "desc" ? -1 : 1;
   const sortField = req.query.sortBy || "price";
-  const products = await Product.find().sort({ [sortField]: sortOrder });
+  const products = await Product.find()
+    .sort({ [sortField]: sortOrder })
+    .limit(limit)
+    .skip(skip);
   console.log(products);
   res.status(200).json({ status: status.SUCCESS, data: products });
 });
@@ -50,15 +57,15 @@ const getProductByCode = asyncWrapper(async (req, res, next) => {
     );
     return next(error);
   }
-  res.status(200).json({ status: status.SUCCESS, data: product });
+  const totalePages = Math.floor((await Product.countDocuments()) / limit);
+
+  res.status(200).json({ status: status.SUCCESS, data: product, totalePages });
 });
 
 const addProduct = asyncWrapper(async (req, res, next) => {
   console.log("body", req.body);
 
   const requestFields = Object.keys(req.body);
-  let requestFieldsInStock;
-  let requestFieldsInStockInSize;
 
   // const allowedFields = [
   //   "_id",
@@ -305,6 +312,10 @@ const deleted = asyncWrapper(async (req, res, next) => {
 });
 
 const getProductsByPram = asyncWrapper(async (req, res, next) => {
+  const limit = parseInt(req.query.limit) || 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * limit;
+
   const filterBy = req.params.dynamicParam;
   const param = req.params.paramName;
   const sortOrder = req.query.order === "desc" ? -1 : 1; // `asc` = 1, `desc` = -1
@@ -349,7 +360,10 @@ const getProductsByPram = asyncWrapper(async (req, res, next) => {
 
   console.log("Filter:", filter);
 
-  const products = await Product.find(filter).sort({ [sortField]: sortOrder });
+  const products = await Product.find(filter)
+    .sort({ [sortField]: sortOrder })
+    .limit(limit)
+    .skip(skip);
   console.log(products.length);
   if (!products.length) {
     const error = AppError.createError(
