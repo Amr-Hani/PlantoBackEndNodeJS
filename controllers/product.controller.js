@@ -319,14 +319,15 @@ const getProductsByPram = asyncWrapper(async (req, res, next) => {
     "description",
     "price",
     "rating",
-    "quantity",
-    "availableColors",
-    "availableSizes",
+    "productCode",
+    "shippingTax",
+    "stock",
     "categories",
     "tags",
     "brand",
     "sale",
     "hot",
+    "image",
   ];
   if (!allowedFields.includes(filterBy)) {
     const error = AppError.createError(
