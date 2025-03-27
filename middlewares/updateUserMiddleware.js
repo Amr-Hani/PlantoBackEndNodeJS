@@ -1,38 +1,47 @@
 const { body } = require("express-validator");
-
 const updateUserMiddleware = () => {
   return [
     body("firstname")
-      .notEmpty()
       .optional()
       .isLength({ min: 3 })
       .withMessage("First Name should be minimum 3 characters.")
       .isLength({ max: 20 })
       .withMessage("First Name should be maximum 20 characters.")
       .isAlpha()
-      .withMessage("First Name shouldent containt number"),
+      .withMessage("First Name shouldn't contain numbers."),
+
     body("lastname")
-      .notEmpty()
       .optional()
       .isLength({ min: 3 })
       .withMessage("Last Name should be minimum 3 characters.")
       .isLength({ max: 20 })
-      .withMessage("Last Name and should be maximum 3 characters.")
+      .withMessage("Last Name should be maximum 20 characters.")
       .isAlpha()
-      .withMessage("Last Name shouldent containt number"),
-    body("email")
-      .notEmpty()
-      .optional()
-      .withMessage("email is required")
-      .isEmail(),
+      .withMessage("Last Name shouldn't contain numbers."),
+
+    body("email").optional().isEmail().withMessage("Invalid email format."),
+
     body("password")
-      .notEmpty()
       .optional()
       .isLength({ min: 8 })
-      .withMessage("password should be minimum 8 characters.")
+      .withMessage("Password should be at least 8 characters.")
       .isLength({ max: 20 })
-      .withMessage("password should be minimum 20 characters."),
+      .withMessage("Password should be at most 20 characters."),
+
+    body("phoneNumber")
+      .optional()
+      .isMobilePhone()
+      .withMessage("Invalid phone number format."),
+
+    body("ProfileImage")
+      .optional()
+      .isURL()
+      .withMessage("ProfileImage should be a valid URL."),
+
+    body("address")
+      .optional()
+      .isString()
+      .withMessage("Address must be a valid text."),
   ];
 };
-
 module.exports = updateUserMiddleware;

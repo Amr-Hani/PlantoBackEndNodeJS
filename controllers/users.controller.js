@@ -23,7 +23,29 @@ const register = aysncWrapper(async (req, res, next) => {
     return next(error);
   }
   const hashedPassword = await bcrypt.hash(password, 10);
-
+  const allowedFields = [
+    "firstname",
+    "lastname",
+    "email",
+    "password",
+    "phoneNumber",
+    "ProfileImage",
+    "address",
+  ];
+  const requestFields = Object.keys(req.body);
+  const invalidFields = requestFields.filter(
+    (field) => !allowedFields.includes(field)
+  );
+  if (invalidFields.length > 0) {
+    const error = AppError.createError(
+      `Invalid fields: ${invalidFields.join(
+        ", "
+      )}. Allowed fields: ${allowedFields.join(", ")}`,
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
   const user = new Users({
     firstname,
     lastname,
@@ -66,79 +88,85 @@ const login = aysncWrapper(async (req, res, next) => {
 });
 
 const update = aysncWrapper(async (req, res, next) => {
-  const { firstname, lastname, email, password } = req.body;
-
+  const {
+    firstname,
+    lastname,
+    email,
+    password,
+    phoneNumber,
+    ProfileImage,
+    address,
+  } = req.body;
   // Check if request body is empty
-
-  if (!firstname && !lastname && !email && !password) {
+  if (
+    !firstname &&
+    !lastname &&
+    !email &&
+    !password &&
+    !phoneNumber &&
+    !ProfileImage &&
+    !address
+  ) {
     const error = AppError.createError(
       "Please provide at least one valid field to update",
-
       400,
-
       status.BAD_REQUEST
     );
-
     return next(error);
   }
-
   // Define allowed fields based on your User model
-
-  const allowedFields = ["firstname", "lastname", "email", "password"];
-
+  const allowedFields = [
+    "firstname",
+    "lastname",
+    "email",
+    "password",
+    "phoneNumber",
+    "ProfileImage",
+    "address",
+  ];
   // Extract fields from req.body
-
   const requestFields = Object.keys(req.body);
-
   // Find invalid fields
-
   const invalidFields = requestFields.filter(
     (field) => !allowedFields.includes(field)
   );
-
   // If there are invalid fields, return an error response
-
   if (invalidFields.length > 0) {
     const error = AppError.createError(
       `Invalid fields: ${invalidFields.join(
         ", "
       )}. Allowed fields: ${allowedFields.join(", ")}`,
-
       400,
-
       status.BAD_REQUEST
     );
-
     return next(error);
   }
-
   console.log("req.body", req.body);
-
   // Find and update the user
-
   const errors = validationResult(req);
   if (!errors.isEmpty()) {
     const error = AppError.createError(errors.array(), 400, status.BAD_REQUEST);
     return next(error);
   }
-
+  var user = await Users.findOne({ email: req.params.email });
+  if (!user) {
+    const error = AppError.createError("User not found", 404, status.NOT_FOUND);
+    return next(error);
+  }
   let hashedPassword;
   if (password) {
     hashedPassword = await bcrypt.hash(password, 10);
     req.body.password = hashedPassword;
   }
-
   const newUser = await Users.findOneAndUpdate(
     { email: req.params.email },
     { $set: req.body },
     { new: true } // Return updated document
   );
-
   if (!newUser) {
     const error = AppError.createError("User not found", 404, status.NOT_FOUND);
     return next(error);
   }
-
   res.json({ status: status.SUCCESS, data: { newUser } });
 });
 
