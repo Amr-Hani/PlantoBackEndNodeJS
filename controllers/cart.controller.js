@@ -186,7 +186,38 @@ const getCartById = aysncWrapper(async (req, res, next) => {
 
 const deleteItemFromCart = aysncWrapper(async (req, res, next) => {
   const userId = getUserIdFromToken(req);
-  const product_id = req.body.product_id;
+
+  const requestFields = Object.keys(req.body);
+  const allowedFields = ["product_id", "size", "color"];
+  const { product_id, color, size } = req.body;
+  // now start chechikg on the request fields
+  const invalidFields = requestFields.filter(
+    (field) => !allowedFields.includes(field)
+  );
+  if (requestFields.length === 0) {
+    const error = AppError.createError(
+      "Please provide at least one valid field to update",
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+
+  if (invalidFields.length > 0) {
+    const error = AppError.createError(
+      `Invalid fields:( ${invalidFields.join(
+        ", "
+      )} ) Allowed fields: (${allowedFields.join(", ")})`,
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = AppError.createError(errors.array(), 400, status.BAD_REQUEST);
+    return next(error);
+  }
 
   if (!userId) {
     const error = AppError.createError(
@@ -196,15 +227,34 @@ const deleteItemFromCart = aysncWrapper(async (req, res, next) => {
     );
     return next(error);
   }
-
+  // now i have finished cart checking >> lets do the cart checking
   let cart = await Cart.findOne({ userId });
 
   if (!cart) {
     const error = AppError.createError("Cart Not Found", 404, status.NOT_FOUND);
     return next(error);
   }
+  const existingItem = cart.cartItems.find(
+    (item) =>
+      item.product_id.equals(product_id) &&
+      item.color === color &&
+      item.size === size
+  );
+
+  // case en el element da (bel id wel size wel color) msh mwgod fel Cart
+  if (!existingItem) {
+    return next(
+      AppError.createError("Item isn't found in cart", 404, status.NOT_FOUND)
+    );
+  }
+  // case en el element da mwgod fe3lan .. hmsa7o b2a
   cart.cartItems = cart.cartItems.filter(
-    (item) => !item.product_id.equals(product_id)
+    (item) =>
+      !(
+        item.product_id.equals(product_id) &&
+        item.color === color &&
+        item.size === size
+      ) // leh 3mlt keda .. 3shan lw 3ndi 2 item b nafs el id bs different size and color
   );
 
   await cart.save();
