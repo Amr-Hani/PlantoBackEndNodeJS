@@ -143,7 +143,7 @@ const addItemToCart = aysncWrapper(async (req, res, next) => {
     );
 
     if (existingItem) {
-      existingItem.quantity += quantity; // msh += 1 ya 3la2 -_-
+      existingItem.quantity = quantity; // hb3at mn el Total quantity
     } else {
       cart.cartItems.push({
         product_id,
@@ -186,7 +186,6 @@ const getCartById = aysncWrapper(async (req, res, next) => {
 
 const deleteItemFromCart = aysncWrapper(async (req, res, next) => {
   const userId = getUserIdFromToken(req);
-
   const requestFields = Object.keys(req.body);
   const allowedFields = ["product_id", "size", "color"];
   const { product_id, color, size } = req.body;
@@ -263,7 +262,164 @@ const deleteItemFromCart = aysncWrapper(async (req, res, next) => {
 
 //======================Update Cart===================================================
 
-const updateCart = aysncWrapper(async (req, res, next) => {});
+const updateCart = aysncWrapper(async (req, res, next) => {
+  const userId = getUserIdFromToken(req);
+  const requestFields = Object.keys(req.body);
+  const allowedFields = [
+    "product_id",
+    "quantity",
+    "size",
+    "color",
+    "priceAtPurchase",
+    "cartItem_id",
+  ];
+  const {
+    product_id,
+    quantity = 1,
+    color,
+    size,
+    priceAtPurchase,
+    cartItem_id,
+  } = req.body;
+  // now lets start the fileds checking
+  const invalidFields = requestFields.filter(
+    (field) => !allowedFields.includes(field)
+  );
+  if (requestFields.length === 0) {
+    const error = AppError.createError(
+      "Please provide at least one valid field to update",
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+
+  if (invalidFields.length > 0) {
+    const error = AppError.createError(
+      `Invalid fields:( ${invalidFields.join(
+        ", "
+      )} ) Allowed fields: (${allowedFields.join(", ")})`,
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = AppError.createError(errors.array(), 400, status.BAD_REQUEST);
+    return next(error);
+  }
+
+  if (!userId) {
+    const error = AppError.createError(
+      "Unauthorized",
+      401,
+      status.UNAUTHORIZED
+    );
+    return next(error);
+  }
+  // now lets start the values checking
+  //---------------------------------------------------------------//
+  // now check if ther is a product with this id or not
+  let product = await Product.findOne({ _id: product_id });
+  console.log(product);
+
+  if (!product) {
+    const error = AppError.createError(
+      "no prodouct with this id",
+      404,
+      status.NOT_FOUND
+    );
+    return next(error);
+  }
+  // now check if their a product with the selected color not the stock or not
+  const stockItemWithSepecific_Color = product.stock.find(
+    (item) => item.color === color
+  );
+  if (!stockItemWithSepecific_Color) {
+    return next(
+      AppError.createError(
+        "Invalid color for this product",
+        400,
+        status.BAD_REQUEST
+      )
+    );
+  }
+  console.log(stockItemWithSepecific_Color);
+  // now check on the stockItemWithSepecific_Color if it have a size like the requested
+  const stockItemWithSepecific_ColorAndSize =
+    stockItemWithSepecific_Color.sizes.find((s) => s.size === size);
+  if (!stockItemWithSepecific_ColorAndSize) {
+    return next(
+      AppError.createError(
+        "Invalid size for this product",
+        400,
+        status.BAD_REQUEST
+      )
+    );
+  }
+  console.log(stockItemWithSepecific_ColorAndSize);
+  // now check on the quantitiy
+  if (quantity > stockItemWithSepecific_ColorAndSize.quantity) {
+    return next(
+      AppError.createError(
+        "Requested quantity exceeds available stock",
+        400,
+        status.BAD_REQUEST
+      )
+    );
+  }
+  // kda kol el values tmam w a2dar 3adel beha el product da .. dlwa2ty ro7 hato mn el cart bs el awel hat el cart
+  // bs 3ndi moshkela >> efred en 3ndi etnen object b nafs el id fel cart >> kda el far2 benhom hykon el {current} color w size
+  // w ba3d kda a3melohom update bel new color and size
+  // kda yb2a lazem ab3at l hena el old color and size 3shan a2dar ageb el product .. b8ad el nazzar 3n el Product_id
+  // aw hashof el id bta3 el cart item nafso lw mwgod
+  /* -------------------------------------------------------*/
+  //{hgrab bta3et el cartItem Id }
+  /* -------------------------------------------------------*/
+  let cart = await Cart.findOne({ userId });
+
+  if (!cart) {
+    const error = AppError.createError("Cart Not Found", 404, status.NOT_FOUND);
+    return next(error);
+  }
+  // shof lw 3ndak item b nafs el color wel size
+  const existingItem = cart.cartItems.find(
+    (item) =>
+      item.product_id.equals(product_id) &&
+      item.color === color &&
+      item.size === size
+  );
+
+  if (existingItem) {
+    // de case en el front taleb bas yzawed el quantity bta3t el product
+    existingItem.quantity += quantity; // msh += 1 ya 3la2 -_-
+  } else {
+    // case en mfesh item b nafs el color wel size
+    // sa3tha hgeb el cart item da w ha3mel update 3leh bel vales bta3t el (size , color , quantity m price el godad )
+    let itemToBeUpdated = cart.cartItems.find(
+      (item) =>
+        item.product_id.equals(product_id) && item._id.equals(cartItem_id)
+    );
+
+    console.log({ itemToBeUpdated });
+    if (!itemToBeUpdated) {
+      const error = AppError.createError(
+        "cart Item was Not Found",
+        404,
+        status.NOT_FOUND
+      );
+      return next(error);
+    }
+    itemToBeUpdated.color = color;
+    itemToBeUpdated.size = size;
+    itemToBeUpdated.quantity += quantity;
+    itemToBeUpdated.priceAtPurchase = priceAtPurchase;
+  }
+
+  await cart.save();
+  res.json({ message: "Cart Updated Suessfully", cart });
+});
 
 //====================================================================================
 module.exports = { addItemToCart, getCartById, deleteItemFromCart, updateCart };

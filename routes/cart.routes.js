@@ -10,9 +10,10 @@ const {
 const {
   AddTocartMiddleware,
   DeleteItemFromCartMiddleware,
+  UpdateCartMiddleware,
 } = require("../middlewares/cartMiddleware");
 router.route("/").post(AddTocartMiddleware(), addItemToCart);
 router.route("/").get(getCartById);
 router.route("/").delete(DeleteItemFromCartMiddleware(), deleteItemFromCart);
-router.route("/").patch(updateCart);
+router.route("/").put(UpdateCartMiddleware(), updateCart);
 module.exports = router;

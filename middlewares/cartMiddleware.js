@@ -35,4 +35,28 @@ const DeleteItemFromCartMiddleware = () => {
     body("size").notEmpty().withMessage("Size is required"),
   ];
 };
-module.exports = { AddTocartMiddleware, DeleteItemFromCartMiddleware };
+
+const UpdateCartMiddleware = () => {
+  return [
+    body("product_id").notEmpty().withMessage("Product ID is required"),
+    body("cartItem_id").notEmpty().withMessage("Cart Item ID is required"),
+
+    body("color").notEmpty().withMessage("Color is required"),
+
+    body("size").notEmpty().withMessage("Size is required"),
+
+    body("quantity")
+      .notEmpty()
+      .withMessage("Quantitiy is required")
+      .isInt({ min: 1 })
+      .withMessage("Minimum quantity is 1"),
+    body("priceAtPurchase")
+      .notEmpty()
+      .withMessage(" Price at purchase is required"),
+  ];
+};
+module.exports = {
+  AddTocartMiddleware,
+  DeleteItemFromCartMiddleware,
+  UpdateCartMiddleware,
+};
