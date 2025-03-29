@@ -527,6 +527,42 @@ const getAllTags = asyncWrapper(async (req, res, next) => {
   res.status(200).json({ status: status.SUCCESS, data: randomTags });
 });
 
+const getProductBySearchQuery = asyncWrapper(async (req, res, next) => {
+  const limit = parseInt(req.query.limit) || 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * limit;
+  const sortOrder = req.query.order === "desc" ? -1 : 1;
+  const sortField = req.query.sortBy || "price";
+  const querySearch = req.query.querySearch || ""; // Get the search string
+
+  const filter = {};
+
+  // If a search query exists, filter products by title
+  if (querySearch) {
+    filter.title = { $regex: querySearch, $options: "i" }; // Case-insensitive search
+  }
+
+  const products = await Product.find(filter)
+    .sort({ [sortField]: sortOrder })
+    .skip(skip)
+    .limit(limit);
+
+  const totalProducts = await Product.countDocuments(filter);
+
+  if (!products.length) {
+    return next(
+      AppError.createError("No products found", 404, status.NOT_FOUND)
+    );
+  }
+
+  res.status(200).json({
+    status: status.SUCCESS,
+    data: products,
+    totalPages: Math.ceil(totalProducts / limit),
+    currentPage: page,
+  });
+});
+
 // http://localhost:3000/products/tag/gaming?minPrice=100&maxPrice=500&order=asc
 
 module.exports = {
@@ -538,6 +574,7 @@ module.exports = {
   getProductsByPram,
   getAllCategories,
   getAllTags,
+  getProductBySearchQuery,
   // getProductsByCategory,
   // getProductsByTag,
 };

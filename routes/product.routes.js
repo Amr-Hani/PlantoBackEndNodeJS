@@ -23,5 +23,6 @@ router.route("/products/:id").delete(productController.deleted);
 //   .get(productController.getProductsByPram);
 
 router.route("/productsFillter").get(productController.getProductsByPram);
+router.route("/productsSearch").get(productController.getProductBySearchQuery);
 
 module.exports = router;
