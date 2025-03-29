@@ -102,10 +102,11 @@ const update = aysncWrapper(async (req, res, next) => {
     !firstname &&
     !lastname &&
     !email &&
-    !password &&
-    !phoneNumber &&
+    !password
+    /**&& 
+     *  !phoneNumber &&
     !ProfileImage &&
-    !address
+    !address */
   ) {
     const error = AppError.createError(
       "Please provide at least one valid field to update",

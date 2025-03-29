@@ -42,7 +42,8 @@ const getAllProduct = asyncWrapper(async (req, res, next) => {
     .limit(limit)
     .skip(skip);
   console.log(products);
-  res.status(200).json({ status: status.SUCCESS, data: products });
+  const totalePages = Math.ceil((await Product.countDocuments()) / limit);
+  res.status(200).json({ status: status.SUCCESS, data: products, totalePages });
 });
 
 const getProductByCode = asyncWrapper(async (req, res, next) => {
@@ -57,9 +58,8 @@ const getProductByCode = asyncWrapper(async (req, res, next) => {
     );
     return next(error);
   }
-  const totalePages = Math.floor((await Product.countDocuments()) / limit);
 
-  res.status(200).json({ status: status.SUCCESS, data: product, totalePages });
+  res.status(200).json({ status: status.SUCCESS, data: product });
 });
 
 const addProduct = asyncWrapper(async (req, res, next) => {
@@ -311,17 +311,85 @@ const deleted = asyncWrapper(async (req, res, next) => {
   res.status(200).json({ status: status.DELETED, data: null });
 });
 
+// const getProductsByPram = asyncWrapper(async (req, res, next) => {
+//   const limit = parseInt(req.query.limit) || 10;
+//   const page = parseInt(req.query.page) || 1;
+//   const skip = (page - 1) * limit;
+
+//   const filterBy = req.params.dynamicParam;
+//   const param = req.params.paramName;
+//   const sortOrder = req.query.order === "desc" ? -1 : 1; // `asc` = 1, `desc` = -1
+//   const sortField = req.query.sortBy || "price";
+//   const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice) : null;
+//   const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice) : null;
+//   const allowedFields = [
+//     "title",
+//     "description",
+//     "price",
+//     "rating",
+//     "productCode",
+//     "shippingTax",
+//     "stock",
+//     "categories",
+//     "tags",
+//     "brand",
+//     "sale",
+//     "hot",
+//     "image",
+//   ];
+//   if (!allowedFields.includes(filterBy)) {
+//     const error = AppError.createError(
+//       `Invalid fields:( ${filterBy} ) Allowed fields: (${allowedFields.join(
+//         ", "
+//       )})`,
+//       400,
+//       status.BAD_REQUEST
+//     );
+//     return next(error);
+//   }
+
+//   let filter = {
+//     [filterBy]: { $regex: param, $options: "i" },
+//   };
+
+//   if (minPrice !== null || maxPrice !== null) {
+//     filter.price = {};
+//     if (minPrice !== null) filter.price.$gte = minPrice;
+//     if (maxPrice !== null) filter.price.$lte = maxPrice;
+//   }
+
+//   console.log("Filter:", filter);
+
+//   const products = await Product.find(filter)
+//     .sort({ [sortField]: sortOrder })
+//     .limit(limit)
+//     .skip(skip);
+//   console.log(products.length);
+//   if (!products.length) {
+//     const error = AppError.createError(
+//       `Products in this ${filterBy} not found`,
+//       404,
+//       status.NOT_FOUND
+//     );
+//     return next(error);
+//   }
+//   const numberOfProuductForSpecificCategory = await Product.find(
+//     filter
+//   ).countDocuments();
+//   const totalePages = Math.ceil(numberOfProuductForSpecificCategory / limit);
+//   console.log("totalePages", totalePages);
+
+//   res.json({ stetus: status.SUCCESS, data: products, totalePages });
+// });
+
 const getProductsByPram = asyncWrapper(async (req, res, next) => {
   const limit = parseInt(req.query.limit) || 10;
   const page = parseInt(req.query.page) || 1;
   const skip = (page - 1) * limit;
-
-  const filterBy = req.params.dynamicParam;
-  const param = req.params.paramName;
-  const sortOrder = req.query.order === "desc" ? -1 : 1; // `asc` = 1, `desc` = -1
+  const sortOrder = req.query.order === "desc" ? -1 : 1;
   const sortField = req.query.sortBy || "price";
-  const minPrice = req.query.minPrice ? parseFloat(req.query.minPrice) : null;
-  const maxPrice = req.query.maxPrice ? parseFloat(req.query.maxPrice) : null;
+  const filter = {};
+
   const allowedFields = [
     "title",
     "description",
@@ -337,25 +405,27 @@ const getProductsByPram = asyncWrapper(async (req, res, next) => {
     "hot",
     "image",
   ];
-  if (!allowedFields.includes(filterBy)) {
-    const error = AppError.createError(
-      `Invalid fields:( ${filterBy} ) Allowed fields: (${allowedFields.join(
-        ", "
-      )})`,
-      400,
-      status.BAD_REQUEST
-    );
-    return next(error);
-  }
 
-  let filter = {
-    [filterBy]: { $regex: param, $options: "i" },
-  };
+  // Loop through allowed fields and check if any query params match
 
-  if (minPrice !== null || maxPrice !== null) {
+  allowedFields.forEach((field) => {
+    if (req.query[field]) {
+      if (field == "categories") {
+        filter[field] = { $eq: req.query[field] };
+      } else {
+        filter[field] = { $regex: req.query[field], $options: "i" };
+      }
+    }
+  });
+
+  // Handle price filtering separately
+
+  if (req.query.minPrice || req.query.maxPrice) {
     filter.price = {};
-    if (minPrice !== null) filter.price.$gte = minPrice;
-    if (maxPrice !== null) filter.price.$lte = maxPrice;
+
+    if (req.query.minPrice) filter.price.$gte = parseFloat(req.query.minPrice);
+
+    if (req.query.maxPrice) filter.price.$lte = parseFloat(req.query.maxPrice);
   }
 
   console.log("Filter:", filter);
@@ -364,16 +434,97 @@ const getProductsByPram = asyncWrapper(async (req, res, next) => {
     .sort({ [sortField]: sortOrder })
     .limit(limit)
     .skip(skip);
-  console.log(products.length);
+
   if (!products.length) {
+    return next(
+      AppError.createError("No products found", 404, status.NOT_FOUND)
+    );
+  }
+
+  const totalePages = Math.ceil(
+    (await Product.find(filter).countDocuments()) / limit
+  );
+  console.log(limit);
+  res.json({
+    status: status.SUCCESS,
+    data: products,
+    totalePages,
+    // minPrice,
+    // maxPrice,
+  });
+});
+
+const getAllCategories = asyncWrapper(async (req, res, next) => {
+  const categories = await Product.aggregate([
+    {
+      $group: {
+        _id: "$categories",
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $group: {
+        _id: null,
+        categories: {
+          $push: { k: "$_id", v: "$count" }, // Convert to key-value pairs
+        },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        categories: { $arrayToObject: "$categories" }, // Convert array to an object
+      },
+    },
+  ]);
+  if (!categories.length) {
     const error = AppError.createError(
-      `Products in this ${filterBy} not found`,
+      "Categories not found",
       404,
       status.NOT_FOUND
     );
     return next(error);
   }
-  res.json({ stetus: status.SUCCESS, data: products });
+  // log(categories);
+
+  res.status(200).json({ status: status.SUCCESS, data: categories });
+});
+
+const getAllTags = asyncWrapper(async (req, res, next) => {
+  const tags = await Product.aggregate([
+    {
+      $project: {
+        tagsArray: { $split: ["$tags", ", "] }, // Split tags into an array
+      },
+    },
+    {
+      $unwind: "$tagsArray", // Unwind the array to create a document for each tag
+    },
+    {
+      $group: {
+        _id: null,
+        uniqueTags: { $addToSet: "$tagsArray" },
+      },
+    },
+    {
+      $project: {
+        _id: 0,
+        tags: "$uniqueTags",
+      },
+    },
+  ]);
+
+  if (!tags.length) {
+    const error = AppError.createError(
+      "Categories not found",
+      404,
+      status.NOT_FOUND
+    );
+    return next(error);
+  }
+
+  var randomTags = tags[0].tags.sort(() => 0.5 - Math.random()).slice(0, 10);
+  res.status(200).json({ status: status.SUCCESS, data: randomTags });
 });
 
 // http://localhost:3000/products/tag/gaming?minPrice=100&maxPrice=500&order=asc
@@ -385,6 +536,8 @@ module.exports = {
   updateProduct,
   deleted,
   getProductsByPram,
+  getAllCategories,
+  getAllTags,
   // getProductsByCategory,
   // getProductsByTag,
 };

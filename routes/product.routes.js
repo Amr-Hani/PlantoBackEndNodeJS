@@ -5,6 +5,8 @@ const productController = require("../controllers/product.controller.js");
 const updateProductMiddleware = require("../middlewares/updateProductMiddleware.js");
 
 router.route("/products").get(productController.getAllProduct);
+router.route("/products/categories").get(productController.getAllCategories);
+router.route("/products/tags").get(productController.getAllTags);
 router.route("/products/:id").get(productController.getProductByCode);
 router.route("/products").post(productController.addProduct);
 router
@@ -16,8 +18,10 @@ router.route("/products/:id").delete(productController.deleted);
 //   .get(productController.getProductsByCategory);
 // router.route("/products/tag/:tagName").get(productController.getProductsByTag);
 
-router
-  .route("/products/:dynamicParam/:paramName")
-  .get(productController.getProductsByPram);
+// router
+//   .route("/products/:dynamicParam/:paramName")
+//   .get(productController.getProductsByPram);
+
+router.route("/productsFillter").get(productController.getProductsByPram);
 
 module.exports = router;
