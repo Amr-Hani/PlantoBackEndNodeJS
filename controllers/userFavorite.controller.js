@@ -23,6 +23,8 @@ const getUserIdFromToken = (req) => {
 //======================add Fav Product==========================================
 const addFavoriteProduct = aysncWrapper(async (req, res, next) => {
   const userId = getUserIdFromToken(req);
+  console.log({ userId });
+
   const product_id = req.body.product_id; // sami dol tani da test bardo
   const requestFields = Object.keys(req.body);
   const allowedFields = ["product_id"];
@@ -40,11 +42,20 @@ const addFavoriteProduct = aysncWrapper(async (req, res, next) => {
     return next(error);
   }
 
-  if (!userId || !product_id) {
+  if (!userId) {
     const error = AppError.createError(
       "User ID and Product ID are required",
       401,
       status.UNAUTHORIZED
+    );
+    return next(error);
+  }
+
+  if (!product_id) {
+    const error = AppError.createError(
+      "Product ID are required",
+      400,
+      status.BAD_REQUEST
     );
     return next(error);
   }
@@ -108,27 +119,36 @@ const getAllFavoriteProducts = aysncWrapper(async (req, res, next) => {
 const deleteFavoriteProduct = async (req, res, next) => {
   const userId = getUserIdFromToken(req);
 
-  const product_id = req.body.product_id; // sami dol tani da test bardo
-  const requestFields = Object.keys(req.body);
-  const allowedFields = ["product_id"];
+  const product_id = req.params.product_id; // sami dol tani da test bardo
+  //  const requestFields = Object.keys(req.body);
+  // const allowedFields = ["product_id"];
 
-  const invalidFields = requestFields.filter(
-    (field) => !allowedFields.includes(field)
-  );
+  // const invalidFields = requestFields.filter(
+  //   (field) => !allowedFields.includes(field)
+  // );
 
-  if (invalidFields.length > 0) {
+  // if (invalidFields.length > 0) {
+  //   const error = AppError.createError(
+  //     `Invalid field names. Allowed fields are: ${allowedFields.join(",")}`,
+  //     400,
+  //     status.BAD_REQUEST
+  //   );
+  //   return next(error);
+  // }
+  if (!product_id) {
     const error = AppError.createError(
-      `Invalid field names. Allowed fields are: ${allowedFields.join(",")}`,
+      "Product ID are required",
       400,
       status.BAD_REQUEST
     );
     return next(error);
   }
-  if (!userId || !product_id) {
+
+  if (!userId) {
     const error = AppError.createError(
-      "User ID and Product ID are required",
-      400,
-      status.BAD_REQUEST
+      "no prodouct with this id",
+      401,
+      status.UNAUTHORIZED
     );
     return next(error);
   }

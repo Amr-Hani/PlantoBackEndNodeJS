@@ -8,5 +8,5 @@ const {
 
 router.route("/").post(addFavoriteProduct);
 router.route("/").get(getAllFavoriteProducts);
-router.route("/").delete(deleteFavoriteProduct);
+router.route("/:product_id").delete(deleteFavoriteProduct);
 module.exports = router;
