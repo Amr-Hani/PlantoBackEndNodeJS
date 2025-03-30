@@ -14,6 +14,6 @@ const {
 } = require("../middlewares/cartMiddleware");
 router.route("/").post(AddTocartMiddleware(), addItemToCart);
 router.route("/").get(getCartById);
-router.route("/").delete(DeleteItemFromCartMiddleware(), deleteItemFromCart);
+router.route("/:product_id").delete(deleteItemFromCart);
 router.route("/").put(UpdateCartMiddleware(), updateCart);
 module.exports = router;

@@ -183,8 +183,8 @@ const getCartById = aysncWrapper(async (req, res, next) => {
 });
 
 //======================Delete Item Fom Cart==========================================
-
-const deleteItemFromCart = aysncWrapper(async (req, res, next) => {
+// V1
+/*const deleteItemFromCart = aysncWrapper(async (req, res, next) => {
   const userId = getUserIdFromToken(req);
   const requestFields = Object.keys(req.body);
   const allowedFields = ["product_id", "size", "color"];
@@ -225,6 +225,82 @@ const deleteItemFromCart = aysncWrapper(async (req, res, next) => {
       status.UNAUTHORIZED
     );
     return next(error);
+  }
+  // now i have finished cart checking >> lets do the cart checking
+  let cart = await Cart.findOne({ userId });
+
+  if (!cart) {
+    const error = AppError.createError("Cart Not Found", 404, status.NOT_FOUND);
+    return next(error);
+  }
+  const existingItem = cart.cartItems.find(
+    (item) =>
+      item.product_id.equals(product_id) &&
+      item.color === color &&
+      item.size === size
+  );
+
+  // case en el element da (bel id wel size wel color) msh mwgod fel Cart
+  if (!existingItem) {
+    return next(
+      AppError.createError("Item isn't found in cart", 404, status.NOT_FOUND)
+    );
+  }
+  // case en el element da mwgod fe3lan .. hmsa7o b2a
+  cart.cartItems = cart.cartItems.filter(
+    (item) =>
+      !(
+        item.product_id.equals(product_id) &&
+        item.color === color &&
+        item.size === size
+      ) // leh 3mlt keda .. 3shan lw 3ndi 2 item b nafs el id bs different size and color
+  );
+
+  await cart.save();
+  res.json({ message: "Product removed from cart", cart });
+}); */
+
+//-------------------v2--------------------------------
+
+const deleteItemFromCart = aysncWrapper(async (req, res, next) => {
+  const userId = getUserIdFromToken(req);
+  const { product_id } = req.params;
+  const { size, color } = req.query;
+  // check if the user is authrized or not
+  if (!userId) {
+    const error = AppError.createError(
+      "Unauthorized",
+      401,
+      status.UNAUTHORIZED
+    );
+    return next(error);
+  }
+  if (!product_id) {
+    return next(
+      AppError.createError(
+        "product_id is required parameters",
+        400,
+        status.BAD_REQUEST
+      )
+    );
+  }
+  if (!color) {
+    return next(
+      AppError.createError(
+        "color is required parameters",
+        400,
+        status.BAD_REQUEST
+      )
+    );
+  }
+  if (!size) {
+    return next(
+      AppError.createError(
+        "size is required parameters",
+        400,
+        status.BAD_REQUEST
+      )
+    );
   }
   // now i have finished cart checking >> lets do the cart checking
   let cart = await Cart.findOne({ userId });
