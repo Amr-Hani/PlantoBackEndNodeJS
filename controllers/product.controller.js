@@ -43,7 +43,16 @@ const getAllProduct = asyncWrapper(async (req, res, next) => {
     .skip(skip);
   console.log(products);
   const totalePages = Math.ceil((await Product.countDocuments()) / limit);
-  res.status(200).json({ status: status.SUCCESS, data: products, totalePages });
+  const allProducts = await Product.find(); // Get all products for min/max price calculation
+  const maxPrice = getMaxPrice(allProducts);
+  const minPrice = getMinPrice(allProducts);
+  res.status(200).json({
+    status: status.SUCCESS,
+    data: products,
+    totalePages,
+    maxPrice,
+    minPrice,
+  });
 });
 
 const getProductByCode = asyncWrapper(async (req, res, next) => {
@@ -389,7 +398,6 @@ const getProductsByPram = asyncWrapper(async (req, res, next) => {
   const sortOrder = req.query.order === "desc" ? -1 : 1;
   const sortField = req.query.sortBy || "price";
   const filter = {};
-
   const allowedFields = [
     "title",
     "description",
@@ -427,7 +435,7 @@ const getProductsByPram = asyncWrapper(async (req, res, next) => {
 
     if (req.query.maxPrice) filter.price.$lte = parseFloat(req.query.maxPrice);
   }
-
+  console.log("res.query.minPrice", req.query.minPrice);
   console.log("Filter:", filter);
 
   const products = await Product.find(filter)
@@ -444,13 +452,64 @@ const getProductsByPram = asyncWrapper(async (req, res, next) => {
   const totalePages = Math.ceil(
     (await Product.find(filter).countDocuments()) / limit
   );
+  const allProducts = await Product.find(filter); // Get all products for min/max price calculation
+  const maxPrice = getMaxPrice(allProducts);
+  const minPrice = getMinPrice(allProducts);
   console.log(limit);
   res.json({
     status: status.SUCCESS,
     data: products,
     totalePages,
-    // minPrice,
-    // maxPrice,
+    minPrice,
+    maxPrice,
+  });
+});
+
+const getProductBySearchQuery = asyncWrapper(async (req, res, next) => {
+  const limit = parseInt(req.query.limit) || 10;
+  const page = parseInt(req.query.page) || 1;
+  const skip = (page - 1) * limit;
+  const sortOrder = req.query.order === "desc" ? -1 : 1;
+  const sortField = req.query.sortBy || "price";
+  const querySearch = req.query.querySearch || ""; // Get the search string
+
+  const filter = {};
+
+  // If a search query exists, filter products by title
+  if (querySearch) {
+    filter.title = { $regex: querySearch, $options: "i" }; // Case-insensitive search
+  }
+  console.log("req.query.minPrice", req.query.minPrice);
+
+  if (req.query.minPrice || req.query.maxPrice) {
+    filter.price = {};
+
+    if (req.query.minPrice) filter.price.$gte = parseFloat(req.query.minPrice);
+
+    if (req.query.maxPrice) filter.price.$lte = parseFloat(req.query.maxPrice);
+  }
+
+  const products = await Product.find(filter)
+    .sort({ [sortField]: sortOrder })
+    .skip(skip)
+    .limit(limit);
+
+  const totalProducts = await Product.countDocuments(filter);
+
+  if (!products.length) {
+    return next(
+      AppError.createError("No products found", 404, status.NOT_FOUND)
+    );
+  }
+  const allProducts = await Product.find(filter); // Get all products for min/max price calculation
+  const maxPrice = getMaxPrice(allProducts);
+  const minPrice = getMinPrice(allProducts);
+  res.status(200).json({
+    status: status.SUCCESS,
+    data: products,
+    totalePages: Math.ceil(totalProducts / limit),
+    maxPrice,
+    minPrice,
   });
 });
 
@@ -527,41 +586,24 @@ const getAllTags = asyncWrapper(async (req, res, next) => {
   res.status(200).json({ status: status.SUCCESS, data: randomTags });
 });
 
-const getProductBySearchQuery = asyncWrapper(async (req, res, next) => {
-  const limit = parseInt(req.query.limit) || 10;
-  const page = parseInt(req.query.page) || 1;
-  const skip = (page - 1) * limit;
-  const sortOrder = req.query.order === "desc" ? -1 : 1;
-  const sortField = req.query.sortBy || "price";
-  const querySearch = req.query.querySearch || ""; // Get the search string
-
-  const filter = {};
-
-  // If a search query exists, filter products by title
-  if (querySearch) {
-    filter.title = { $regex: querySearch, $options: "i" }; // Case-insensitive search
-  }
-
-  const products = await Product.find(filter)
-    .sort({ [sortField]: sortOrder })
-    .skip(skip)
-    .limit(limit);
-
-  const totalProducts = await Product.countDocuments(filter);
-
-  if (!products.length) {
-    return next(
-      AppError.createError("No products found", 404, status.NOT_FOUND)
-    );
-  }
-
-  res.status(200).json({
-    status: status.SUCCESS,
-    data: products,
-    totalPages: Math.ceil(totalProducts / limit),
-    currentPage: page,
+function getMaxPrice(products) {
+  let maxPrice = Number.MIN_VALUE; // Initialize to the smallest possible number
+  products.forEach((element) => {
+    if (element.price > maxPrice) {
+      maxPrice = element.price;
+    }
   });
-});
+  return maxPrice;
+}
+function getMinPrice(products) {
+  let minPrice = Number.MAX_VALUE; // Initialize to the largest possible number
+  products.forEach((element) => {
+    if (element.price < minPrice) {
+      minPrice = element.price;
+    }
+  });
+  return minPrice;
+}
 
 // http://localhost:3000/products/tag/gaming?minPrice=100&maxPrice=500&order=asc
 
