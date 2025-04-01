@@ -5,6 +5,7 @@ const {
   getCartById,
   deleteItemFromCart,
   updateCart,
+  updateItemQuantityFromCart,
 } = require("../controllers/cart.controller");
 
 const {
@@ -13,6 +14,9 @@ const {
   UpdateCartMiddleware,
 } = require("../middlewares/cartMiddleware");
 router.route("/").post(AddTocartMiddleware(), addItemToCart);
+router
+  .route("/updatecartItemQuantity")
+  .post(AddTocartMiddleware(), updateItemQuantityFromCart); // will take the new value of quantity in the cart itself
 router.route("/").get(getCartById);
 router.route("/:product_id").delete(deleteItemFromCart);
 router.route("/").put(UpdateCartMiddleware(), updateCart);
