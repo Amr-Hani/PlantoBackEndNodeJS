@@ -22,5 +22,10 @@ router.route("/register").post(userController.register);
 router.route("/login").post(userController.login);
 
 router.route("/:email").patch(updateUserMiddleware(), userController.update);
+router.route("/token").get(verifyToken, userController.getUserByToken);
+
+router
+  .route("/update")
+  .put(verifyToken, updateUserMiddleware(), userController.updateByToken);
 
 module.exports = router;

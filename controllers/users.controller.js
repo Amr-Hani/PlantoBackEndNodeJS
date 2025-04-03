@@ -171,9 +171,138 @@ const update = aysncWrapper(async (req, res, next) => {
   res.json({ status: status.SUCCESS, data: { newUser } });
 });
 
+///////////////////////////////////////////////////////////////////////////////////////
+const jwt = require("jsonwebtoken");
+const getUserIdFromToken = (req) => {
+  try {
+    const token = req.headers.authorization?.split(" ")[1]; // Extract token
+    console.log(req.headers.authorization);
+    if (!token) return null;
+
+    const decoded = jwt.verify(token, process.env.JWT_SECRET_KEY);
+    return decoded.id; // Ensure JWT contains { userId: "..." }  ezay a3raf aeh elli mwgod hena
+  } catch (error) {
+    console.error("Invalid token:", error);
+    return null;
+  }
+};
+const getUserByToken = aysncWrapper(async (req, res) => {
+  const userId = getUserIdFromToken(req);
+  console.log(req.headers.authorization);
+  console.log(userId);
+
+  const user = await Users.find(
+    { _id: userId },
+    { token: 0, __v: 0, password: 0 }
+  );
+  res.json({ status: status.SUCCESS, data: user[0] });
+});
+
+const updateByToken = aysncWrapper(async (req, res, next) => {
+  const userId = getUserIdFromToken(req);
+  console.log(userId);
+  console.log(req.body);
+  console.log(req.body.ProfileImage);
+
+  const {
+    firstname,
+    lastname,
+    email,
+    password,
+    phoneNumber,
+    ProfileImage,
+    address,
+  } = req.body;
+  // Check if request body is empty
+  if (
+    !firstname &&
+    !lastname &&
+    !email &&
+    !password &&
+    !phoneNumber &&
+    !ProfileImage &&
+    !address
+  ) {
+    const error = AppError.createError(
+      "Please provide at least one valid field to update",
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+  // Define allowed fields based on your User model
+  const allowedFields = [
+    "firstname",
+    "lastname",
+    "email",
+    "password",
+    "phoneNumber",
+    "ProfileImage",
+    "address",
+  ];
+  // Extract fields from req.body
+  const requestFields = Object.keys(req.body);
+  // Find invalid fields
+  const invalidFields = requestFields.filter(
+    (field) => !allowedFields.includes(field)
+  );
+  // If there are invalid fields, return an error response
+  if (invalidFields.length > 0) {
+    const error = AppError.createError(
+      `Invalid fields: ${invalidFields.join(
+        ", "
+      )}. Allowed fields: ${allowedFields.join(", ")}`,
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+  console.log("req.body", req.body);
+  // Find and update the user
+  const errors = validationResult(req);
+  if (!errors.isEmpty()) {
+    const error = AppError.createError(errors.array(), 400, status.BAD_REQUEST);
+    return next(error);
+  }
+  var user1 = await Users.findOne({ _id: userId });
+  if (!user1) {
+    const error = AppError.createError("User not found", 404, status.NOT_FOUND);
+    return next(error);
+  }
+  var user2 = await Users.findOne({ email: req.body.email });
+  if (user2) {
+    const error = AppError.createError(
+      "this User is Exists",
+      404,
+      status.NOT_FOUND
+    );
+    return next(error);
+  }
+
+  let hashedPassword;
+  if (password) {
+    hashedPassword = await bcrypt.hash(password, 10);
+    req.body.password = hashedPassword;
+  }
+  const newUser = await Users.findOneAndUpdate(
+    { email: user1.email },
+    { $set: req.body },
+    { new: true } // Return updated document
+  );
+  if (!newUser) {
+    const error = AppError.createError("User not found", 404, status.NOT_FOUND);
+    return next(error);
+  }
+  res.json({ status: status.SUCCESS, data: newUser });
+});
+
+///////////////////////////////////////////////////////////////////////////////////////
+
 module.exports = {
   getAllUsers,
   register,
   login,
   update,
+  getUserByToken,
+  updateByToken,
 };
