@@ -6,6 +6,8 @@ const {
   deleteItemFromCart,
   updateCart,
   updateItemQuantityFromCart,
+  stripeCheckout,
+  clearCart,
 } = require("../controllers/cart.controller");
 
 const {
@@ -19,5 +21,8 @@ router
   .post(AddTocartMiddleware(), updateItemQuantityFromCart); // will take the new value of quantity in the cart itself
 router.route("/").get(getCartById);
 router.route("/:product_id").delete(deleteItemFromCart);
+router.route("/").delete(clearCart);
 router.route("/").put(UpdateCartMiddleware(), updateCart);
+router.route("/checkout").post(stripeCheckout);
+
 module.exports = router;

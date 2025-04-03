@@ -6,6 +6,7 @@ const UserFavorites = require("../models/userFavorites.model");
 const jwt = require("jsonwebtoken");
 const Product = require("../models/product.model.js");
 const Cart = require("../models/cart.model.js");
+const Stripe = require("stripe")(process.env.STRIPE_SECERT_KEY);
 const { validationResult } = require("express-validator");
 
 //===============decode token to get user Id =====================
@@ -674,6 +675,37 @@ const updateCart = aysncWrapper(async (req, res, next) => {
   res.json({ message: "Cart Updated Suessfully", cart });
 });
 
+//=============================checkout=======================================================
+const stripeCheckout = aysncWrapper(async (req, res, nes) => {
+  const { line_items, successURL, failURL } = req.body;
+
+  const session = await Stripe.checkout.sessions.create({
+    success_url: successURL,
+    cancel_url: failURL,
+    line_items: line_items,
+    mode: "payment",
+  });
+  res.json({ id: session.id });
+});
+//============================clear cart ========================================================
+const clearCart = aysncWrapper(async (req, res, next) => {
+  const userId = getUserIdFromToken(req);
+
+  if (!userId) {
+    return next(AppError.createError("Unauthorized", 401, status.UNAUTHORIZED));
+  }
+
+  let cart = await Cart.findOne({ userId });
+  console.log({ cart });
+
+  if (!cart) {
+    return next(AppError.createError("Cart Not Found", 404, status.NOT_FOUND));
+  }
+
+  cart.cartItems = [];
+  await cart.save();
+  res.json({ message: "Cart cleared successfully", cart });
+});
 //====================================================================================
 module.exports = {
   addItemToCart,
@@ -681,4 +713,6 @@ module.exports = {
   deleteItemFromCart,
   updateCart,
   updateItemQuantityFromCart,
+  stripeCheckout,
+  clearCart,
 };
