@@ -6,7 +6,7 @@ module.exports = async (payload) => {
     { email: payload.email, id: payload._id },
     process.env.JWT_SECRET_KEY,
 
-    { expiresIn: "1d" }
+    { expiresIn: "1m" }
   );
   return token;
 };
