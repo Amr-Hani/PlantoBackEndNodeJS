@@ -5,6 +5,7 @@ const AppError = require("../utils/appErrors.js");
 const bcrypt = require("bcryptjs");
 const generateJWT = require("../utils/generateJWT.js");
 const { validationResult } = require("express-validator");
+const BlackListTokens = require("../models/blackListTokenModel.js");
 
 const getAllUsers = aysncWrapper(async (req, res) => {
   const users = await Users.find({}, { token: 0, __v: 0, password: 0 });
@@ -296,6 +297,22 @@ const updateByToken = aysncWrapper(async (req, res, next) => {
   res.json({ status: status.SUCCESS, data: newUser });
 });
 
+/////////////////////////////////////////logOut//////////////////////////////////////////////
+const logOut = aysncWrapper(async (req, res, next) => {
+  const token = req.headers.authorization?.split(" ")[1]; // Extract token
+  if (!token) {
+    const error = AppError.createError(
+      "Missing Token !",
+      404,
+      status.NOT_FOUND
+    );
+    return next(error);
+  }
+
+  await BlackListTokens.create({ token });
+
+  res.json({ status: status.SUCCESS, message: "logged out succefully" });
+});
 ///////////////////////////////////////////////////////////////////////////////////////
 
 module.exports = {
@@ -305,4 +322,5 @@ module.exports = {
   update,
   getUserByToken,
   updateByToken,
+  logOut,
 };

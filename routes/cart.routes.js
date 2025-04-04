@@ -9,20 +9,26 @@ const {
   stripeCheckout,
   clearCart,
 } = require("../controllers/cart.controller");
+const {
+  verifyToken,
+  isTokenBlackListed,
+} = require("../middlewares/verifyToken.js");
 
 const {
   AddTocartMiddleware,
   DeleteItemFromCartMiddleware,
   UpdateCartMiddleware,
 } = require("../middlewares/cartMiddleware");
-router.route("/").post(AddTocartMiddleware(), addItemToCart);
+router
+  .route("/")
+  .post(isTokenBlackListed, AddTocartMiddleware(), addItemToCart);
 router
   .route("/updatecartItemQuantity")
-  .post(AddTocartMiddleware(), updateItemQuantityFromCart); // will take the new value of quantity in the cart itself
-router.route("/").get(getCartById);
-router.route("/:product_id").delete(deleteItemFromCart);
+  .post(isTokenBlackListed, AddTocartMiddleware(), updateItemQuantityFromCart); // will take the new value of quantity in the cart itself
+router.route("/").get(isTokenBlackListed, getCartById);
+router.route("/:product_id").delete(isTokenBlackListed, deleteItemFromCart);
 router.route("/").delete(clearCart);
-router.route("/").put(UpdateCartMiddleware(), updateCart);
-router.route("/checkout").post(stripeCheckout);
+router.route("/").put(isTokenBlackListed, UpdateCartMiddleware(), updateCart);
+router.route("/checkout").post(isTokenBlackListed, stripeCheckout);
 
 module.exports = router;

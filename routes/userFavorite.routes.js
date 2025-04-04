@@ -6,7 +6,9 @@ const {
   deleteFavoriteProduct,
 } = require("../controllers/userFavorite.controller");
 
-router.route("/").post(addFavoriteProduct);
-router.route("/").get(getAllFavoriteProducts);
-router.route("/:product_id").delete(deleteFavoriteProduct);
+const { isTokenBlackListed } = require("../middlewares/verifyToken.js");
+
+router.route("/").post(isTokenBlackListed, addFavoriteProduct);
+router.route("/").get(isTokenBlackListed, getAllFavoriteProducts);
+router.route("/:product_id").delete(isTokenBlackListed, deleteFavoriteProduct);
 module.exports = router;
