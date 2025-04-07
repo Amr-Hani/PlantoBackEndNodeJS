@@ -706,6 +706,50 @@ const clearCart = aysncWrapper(async (req, res, next) => {
   await cart.save();
   res.json({ message: "Cart cleared successfully", cart });
 });
+//=============================Update Stock after success payment  =======================================================
+
+const updateStockAfterSuccessPurchase = aysncWrapper(async (req, res, next) => {
+  const userId = getUserIdFromToken(req);
+
+  if (!userId) {
+    return next(AppError.createError("Unauthorized", 401, status.UNAUTHORIZED));
+  }
+
+  let cart = await Cart.findOne({ userId });
+  console.log({ cart });
+
+  if (!cart) {
+    return next(AppError.createError("Cart Not Found", 404, status.NOT_FOUND));
+  }
+
+  cart.cartItems.forEach(async (item) => {
+    const { product_id, color, size, quantity } = item;
+    // console.log(product_id);
+    // console.log(color);
+    // console.log(size);
+    // console.log(quantity);
+
+    let product = await Product.findOne({ _id: product_id });
+    //  console.log(product);
+    if (!product) return;
+
+    const stockItemWithSepecific_Color = product.stock.find(
+      (item) => item.color === color
+    );
+    // console.log(stockItemWithSepecific_Color);
+    if (!stockItemWithSepecific_Color) return;
+
+    // now check on the stockItemWithSepecific_Color if it have a size like the requested
+    const stockItemWithSepecific_ColorAndSize =
+      stockItemWithSepecific_Color.sizes.find((s) => s.size === size);
+    if (!stockItemWithSepecific_ColorAndSize) return;
+
+    stockItemWithSepecific_ColorAndSize.quantity -= quantity;
+    await product.save();
+  });
+
+  return res.status(200).json({ message: "Stock updated Successfully" });
+});
 //====================================================================================
 module.exports = {
   addItemToCart,
@@ -715,4 +759,5 @@ module.exports = {
   updateItemQuantityFromCart,
   stripeCheckout,
   clearCart,
+  updateStockAfterSuccessPurchase,
 };
