@@ -8,6 +8,7 @@ const {
   updateItemQuantityFromCart,
   stripeCheckout,
   clearCart,
+  updateStockAfterSuccessPurchase,
 } = require("../controllers/cart.controller");
 const { verifyToken } = require("../middlewares/verifyToken.js");
 
@@ -25,5 +26,8 @@ router.route("/:product_id").delete(verifyToken, deleteItemFromCart);
 router.route("/").delete(verifyToken, clearCart);
 router.route("/").put(verifyToken, UpdateCartMiddleware(), updateCart);
 router.route("/checkout").post(verifyToken, stripeCheckout);
+router
+  .route("/subtractStock")
+  .post(verifyToken, updateStockAfterSuccessPurchase);
 
 module.exports = router;
