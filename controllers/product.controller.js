@@ -290,6 +290,71 @@ const updateProduct = asyncWrapper(async (req, res, next) => {
     );
     return next(error);
   }
+
+  if (req.body.stock.length === 0) {
+    const error = AppError.createError(
+      "Please provide at least one valid field (color, sizes)",
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+
+  const allowedFieldsInStock = ["color", "sizes"];
+  const invalidFieldsInStock = req.body.stock.flatMap((item) =>
+    Object.keys(item).filter((field) => !allowedFieldsInStock.includes(field))
+  );
+
+  if (invalidFieldsInStock.length > 0) {
+    const error = AppError.createError(
+      `Invalid fields:( ${invalidFieldsInStock.join(
+        ", "
+      )} ) Allowed fields: (${allowedFieldsInStock.join(", ")})`,
+      400,
+      status.BAD_REQUEST
+    );
+    return next(error);
+  }
+
+  const allowedFieldsInSizes = ["size", "quantity"];
+
+  for (const stockItem of req.body.stock) {
+    if (!Array.isArray(stockItem.sizes)) {
+      const error = AppError.createError(
+        "Sizes must be an array",
+        400,
+        status.BAD_REQUEST
+      );
+      return next(error);
+    }
+
+    if (stockItem.sizes.length === 0) {
+      const error = AppError.createError(
+        "Please provide at least one valid field (size, quantity)",
+        400,
+        status.BAD_REQUEST
+      );
+      return next(error);
+    }
+
+    const invalidFieldsInSizes = stockItem.sizes.flatMap((sizeItem) =>
+      Object.keys(sizeItem).filter(
+        (field) => !allowedFieldsInSizes.includes(field)
+      )
+    );
+
+    if (invalidFieldsInSizes.length > 0) {
+      const error = AppError.createError(
+        `Invalid fields in sizes: ( ${[...new Set(invalidFieldsInSizes)].join(
+          ", "
+        )} ) Allowed fields: (${allowedFieldsInSizes.join(", ")})`,
+        400,
+        status.BAD_REQUEST
+      );
+      return next(error);
+    }
+  }
+
   const newProduct = await Product.findOneAndUpdate(
     { _id: id },
     { $set: body },
